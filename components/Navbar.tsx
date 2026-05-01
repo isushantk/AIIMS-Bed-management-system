@@ -1,8 +1,12 @@
 "use client";
 
-import { Hospital, Clock, Activity } from "lucide-react";
+import { Hospital, Clock, Activity, LogOut } from "lucide-react";
 
-export function Navbar() {
+interface NavbarProps {
+  onLogout?: () => void;
+}
+
+export function Navbar({ onLogout }: NavbarProps) {
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-IN", {
     weekday: "short",
@@ -46,12 +50,32 @@ export function Navbar() {
                 {dateStr} · {timeStr}
               </span>
             </div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-lg transition-colors border border-rose-100"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign Out
+              </button>
+            )}
           </div>
 
-          {/* Mobile date */}
-          <div className="sm:hidden flex items-center gap-1.5 text-xs text-slate-500">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{timeStr}</span>
+          {/* Mobile date & logout */}
+          <div className="sm:hidden flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{timeStr}</span>
+            </div>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="p-1.5 text-rose-600 bg-rose-50 rounded-md hover:bg-rose-100 border border-rose-100"
+                aria-label="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>

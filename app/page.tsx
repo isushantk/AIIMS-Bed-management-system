@@ -7,15 +7,23 @@ import { Navbar } from "@/components/Navbar";
 import { StatsBar } from "@/components/StatsBar";
 import { BedGrid } from "@/components/BedGrid";
 import { QuickViewModal } from "@/components/QuickViewModal";
+import { LoginScreen } from "@/components/LoginScreen";
 
 export default function Dashboard() {
   const [beds, setBeds] = useState<Bed[]>(initialBeds);
   const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Check auth
+    if (localStorage.getItem("aiims-auth-token")) {
+      setIsAuthenticated(true);
+    }
+
     const saved = localStorage.getItem("aiims-beds-data");
     if (saved) {
       try {
@@ -167,9 +175,25 @@ export default function Dashboard() {
     );
   };
 
+  const handleLogin = (token: string) => {
+    localStorage.setItem("aiims-auth-token", token);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("aiims-auth-token");
+    setIsAuthenticated(false);
+  };
+
+  if (!isMounted) return null;
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
-      <Navbar />
+      <Navbar onLogout={handleLogout} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
