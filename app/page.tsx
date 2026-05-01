@@ -1,0 +1,137 @@
+"use client";
+
+import { useState } from "react";
+import { Bed, CheckInFormData, AddTreatmentFormData, Treatment } from "@/lib/types";
+import { initialBeds } from "@/lib/data";
+import { Navbar } from "@/components/Navbar";
+import { StatsBar } from "@/components/StatsBar";
+import { BedGrid } from "@/components/BedGrid";
+import { QuickViewModal } from "@/components/QuickViewModal";
+
+export default function Dashboard() {
+  const [beds, setBeds] = useState<Bed[]>(initialBeds);
+  const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const selectedBed = beds.find((b) => b.id === selectedBedId) || null;
+
+  const handleBedClick = (bed: Bed) => {
+    setSelectedBedId(bed.id);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedBedId(null), 200); // Wait for closing animation
+  };
+
+  const handleCheckIn = (bedId: string, data: CheckInFormData) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId) return bed;
+        return {
+          ...bed,
+          status: "occupied",
+          patient: {
+            id: `p-${Date.now()}`,
+            ...data,
+            treatments: [],
+          },
+        };
+      })
+    );
+  };
+
+  const handleCheckOut = (bedId: string) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId) return bed;
+        return {
+          ...bed,
+          status: "cleaning",
+          patient: undefined,
+        };
+      })
+    );
+  };
+
+  const handleAddTreatment = (bedId: string, data: AddTreatmentFormData) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId || !bed.patient) return bed;
+        const newTreatment: Treatment = {
+          id: `t-${Date.now()}`,
+          ...data,
+        };
+        return {
+          ...bed,
+          patient: {
+            ...bed.patient,
+            treatments: [newTreatment, ...bed.patient.treatments],
+          },
+        };
+      })
+    );
+  };
+
+  const handleRemoveTreatment = (bedId: string, treatmentId: string) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId || !bed.patient) return bed;
+        return {
+          ...bed,
+          patient: {
+            ...bed.patient,
+            treatments: bed.patient.treatments.filter((t) => t.id !== treatmentId),
+          },
+        };
+      })
+    );
+  };
+
+  const handleMarkAvailable = (bedId: string) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId) return bed;
+        return {
+          ...bed,
+          status: "available",
+        };
+      })
+    );
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
+      <Navbar />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+            Bed Overview
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Real-time tracking for General Ward capacity and patient status.
+          </p>
+        </div>
+
+        <StatsBar beds={beds} />
+
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 mt-6">
+          <BedGrid beds={beds} onBedClick={handleBedClick} />
+        </div>
+      </main>
+
+      <QuickViewModal
+        bed={selectedBed}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onCheckIn={handleCheckIn}
+        onCheckOut={handleCheckOut}
+        onAddTreatment={handleAddTreatment}
+        onRemoveTreatment={handleRemoveTreatment}
+        onMarkAvailable={handleMarkAvailable}
+      />
+    </div>
+  );
+}
