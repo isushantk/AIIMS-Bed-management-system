@@ -57,7 +57,7 @@ export function BedCard({ bed, onClick }: BedCardProps) {
       aria-label={`Bed ${bed.number} - ${bed.status}${bed.patient ? `, Patient: ${bed.patient.name}` : ""}`}
     >
       {/* Bed Number */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <div
             className={cn(
