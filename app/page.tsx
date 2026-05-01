@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bed, CheckInFormData, AddTreatmentFormData, Treatment, SchedulePatientFormData } from "@/lib/types";
 import { initialBeds } from "@/lib/data";
 import { Navbar } from "@/components/Navbar";
@@ -12,6 +12,25 @@ export default function Dashboard() {
   const [beds, setBeds] = useState<Bed[]>(initialBeds);
   const [selectedBedId, setSelectedBedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const saved = localStorage.getItem("aiims-beds-data");
+    if (saved) {
+      try {
+        setBeds(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load saved beds data");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("aiims-beds-data", JSON.stringify(beds));
+    }
+  }, [beds, isMounted]);
 
   const selectedBed = beds.find((b) => b.id === selectedBedId) || null;
 
