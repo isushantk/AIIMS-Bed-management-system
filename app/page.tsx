@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Bed, CheckInFormData, AddTreatmentFormData, Treatment, SchedulePatientFormData } from "@/lib/types";
 import { initialBeds } from "@/lib/data";
+import { supabase } from "@/lib/supabaseClient";
 import { Navbar } from "@/components/Navbar";
 import { StatsBar } from "@/components/StatsBar";
 import { BedGrid } from "@/components/BedGrid";
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -24,21 +26,40 @@ export default function Dashboard() {
       setIsAuthenticated(true);
     }
 
-    const saved = localStorage.getItem("aiims-beds-data");
-    if (saved) {
+    const fetchBeds = async () => {
       try {
-        setBeds(JSON.parse(saved));
+        const { data, error } = await supabase
+          .from("dashboard_state")
+          .select("data")
+          .eq("id", 1)
+          .single();
+        
+        if (data && data.data) {
+          setBeds(data.data);
+        } else if (!error || error.code === 'PGRST116') {
+          // If no row exists, we insert the initial beds
+          await supabase.from("dashboard_state").insert({ id: 1, data: initialBeds });
+        }
       } catch (e) {
-        console.error("Failed to load saved beds data");
+        console.error("Failed to load beds from Supabase", e);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    fetchBeds();
   }, []);
 
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem("aiims-beds-data", JSON.stringify(beds));
+    if (isMounted && !isLoading) {
+      supabase
+        .from("dashboard_state")
+        .upsert({ id: 1, data: beds })
+        .then(({ error }) => {
+          if (error) console.error("Failed to sync with Supabase", error);
+        });
     }
-  }, [beds, isMounted]);
+  }, [beds, isMounted, isLoading]);
 
   const selectedBed = beds.find((b) => b.id === selectedBedId) || null;
 
@@ -189,6 +210,18 @@ export default function Dashboard() {
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
+        <Navbar onLogout={handleLogout} />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-500 font-medium">Syncing with cloud database...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
