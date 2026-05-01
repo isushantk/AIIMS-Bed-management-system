@@ -309,11 +309,11 @@ export function QuickViewModal({
                   }
                 >
                   {/* Tab List */}
-                  <Tabs.List className="flex bg-slate-100 rounded-xl p-1 mb-5 gap-1">
+                  <Tabs.List className="flex flex-wrap sm:flex-nowrap bg-slate-100 rounded-xl p-1 mb-5 gap-1">
                     <Tabs.Trigger
                       value="info"
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-sm font-medium transition-all",
+                        "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-1.5 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-all min-w-[30%]",
                         "data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm",
                         "data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-700"
                       )}
@@ -324,7 +324,7 @@ export function QuickViewModal({
                     <Tabs.Trigger
                       value="treatments"
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-sm font-medium transition-all",
+                        "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-1.5 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-all min-w-[30%]",
                         "data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm",
                         "data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-700"
                       )}
@@ -340,7 +340,7 @@ export function QuickViewModal({
                     <Tabs.Trigger
                       value="schedule"
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-sm font-medium transition-all",
+                        "flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-1.5 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-all min-w-[30%]",
                         "data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm",
                         "data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-700"
                       )}
