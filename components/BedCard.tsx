@@ -9,6 +9,7 @@ import {
   Calendar,
   Stethoscope,
   Sparkles,
+  Clock,
 } from "lucide-react";
 
 interface BedCardProps {
@@ -123,6 +124,16 @@ export function BedCard({ bed, onClick }: BedCardProps) {
           <BedDouble className="w-6 h-6 text-emerald-400" />
           <span className="text-xs text-emerald-700 font-medium text-center">
             Ready for patient
+          </span>
+        </div>
+      )}
+
+      {/* Scheduled Patient Indicator */}
+      {bed.scheduledPatient && (
+        <div className="mt-3 pt-2 border-t border-slate-100/60 flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          <span className="text-xs font-medium text-indigo-700 truncate">
+            Next: {bed.scheduledPatient.name}
           </span>
         </div>
       )}

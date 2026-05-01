@@ -29,12 +29,22 @@ export interface Patient {
   treatments: Treatment[];
 }
 
+export interface ScheduledPatient {
+  id: string;
+  name: string;
+  age: number;
+  gender: Gender;
+  plannedDate: string;
+  diagnosis?: string;
+}
+
 export interface Bed {
   id: string;
   number: number;
   ward: string;
   status: BedStatus;
   patient?: Patient;
+  scheduledPatient?: ScheduledPatient;
 }
 
 export interface CheckInFormData {
@@ -42,6 +52,14 @@ export interface CheckInFormData {
   age: number;
   gender: Gender;
   admissionDate: string;
+  diagnosis?: string;
+}
+
+export interface SchedulePatientFormData {
+  name: string;
+  age: number;
+  gender: Gender;
+  plannedDate: string;
   diagnosis?: string;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bed, CheckInFormData, AddTreatmentFormData, Treatment } from "@/lib/types";
+import { Bed, CheckInFormData, AddTreatmentFormData, Treatment, SchedulePatientFormData } from "@/lib/types";
 import { initialBeds } from "@/lib/data";
 import { Navbar } from "@/components/Navbar";
 import { StatsBar } from "@/components/StatsBar";
@@ -101,6 +101,53 @@ export default function Dashboard() {
     );
   };
 
+  const handleSchedulePatient = (bedId: string, data: SchedulePatientFormData) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId) return bed;
+        return {
+          ...bed,
+          scheduledPatient: {
+            id: `sp-${Date.now()}`,
+            ...data,
+          },
+        };
+      })
+    );
+  };
+
+  const handleCancelSchedule = (bedId: string) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId) return bed;
+        return {
+          ...bed,
+          scheduledPatient: undefined,
+        };
+      })
+    );
+  };
+
+  const handleAdmitScheduled = (bedId: string) => {
+    setBeds((prev) =>
+      prev.map((bed) => {
+        if (bed.id !== bedId || !bed.scheduledPatient) return bed;
+        const { id, plannedDate, ...patientData } = bed.scheduledPatient;
+        return {
+          ...bed,
+          status: "occupied",
+          patient: {
+            id: `p-${Date.now()}`,
+            ...patientData,
+            admissionDate: new Date().toISOString().split("T")[0], // today
+            treatments: [],
+          },
+          scheduledPatient: undefined, // Clear schedule after admission
+        };
+      })
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
       <Navbar />
@@ -131,6 +178,9 @@ export default function Dashboard() {
         onAddTreatment={handleAddTreatment}
         onRemoveTreatment={handleRemoveTreatment}
         onMarkAvailable={handleMarkAvailable}
+        onSchedulePatient={handleSchedulePatient}
+        onCancelSchedule={handleCancelSchedule}
+        onAdmitScheduled={handleAdmitScheduled}
       />
     </div>
   );

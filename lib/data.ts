@@ -37,6 +37,14 @@ export const initialBeds: Bed[] = [
         },
       ],
     },
+    scheduledPatient: {
+      id: "sp-1",
+      name: "Ravi Kumar",
+      age: 45,
+      gender: "Male",
+      plannedDate: "2026-05-02",
+      diagnosis: "Fever evaluation",
+    },
   },
   {
     id: "bed-2",
@@ -79,6 +87,14 @@ export const initialBeds: Bed[] = [
     number: 4,
     ward: "General",
     status: "cleaning",
+    scheduledPatient: {
+      id: "sp-2",
+      name: "Sita Devi",
+      age: 60,
+      gender: "Female",
+      plannedDate: "2026-05-01",
+      diagnosis: "Post-op admission",
+    },
   },
   {
     id: "bed-5",

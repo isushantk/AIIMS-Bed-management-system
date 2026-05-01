@@ -3,9 +3,10 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Tabs from "@radix-ui/react-tabs";
-import { Bed, CheckInFormData, AddTreatmentFormData } from "@/lib/types";
+import { Bed, CheckInFormData, AddTreatmentFormData, SchedulePatientFormData } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { CheckInForm } from "./CheckInForm";
+import { ScheduleForm } from "./ScheduleForm";
 import { CheckOutDialog } from "./CheckOutDialog";
 import { TreatmentList } from "./TreatmentList";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,9 @@ import {
   Activity,
   Sparkles,
   CheckCircle2,
+  Clock,
+  ArrowRight,
+  LogOut,
 } from "lucide-react";
 
 interface QuickViewModalProps {
@@ -29,6 +33,9 @@ interface QuickViewModalProps {
   onAddTreatment: (bedId: string, data: AddTreatmentFormData) => void;
   onRemoveTreatment: (bedId: string, treatmentId: string) => void;
   onMarkAvailable: (bedId: string) => void;
+  onSchedulePatient: (bedId: string, data: SchedulePatientFormData) => void;
+  onCancelSchedule: (bedId: string) => void;
+  onAdmitScheduled: (bedId: string) => void;
 }
 
 export function QuickViewModal({
@@ -40,9 +47,25 @@ export function QuickViewModal({
   onAddTreatment,
   onRemoveTreatment,
   onMarkAvailable,
+  onSchedulePatient,
+  onCancelSchedule,
+  onAdmitScheduled,
 }: QuickViewModalProps) {
   const [showCheckOut, setShowCheckOut] = useState(false);
-  const [activeTab, setActiveTab] = useState<"info" | "treatments">("info");
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"info" | "treatments" | "schedule">("info");
+
+  // Reset internal states when modal opens/closes
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+      setTimeout(() => {
+        setShowCheckOut(false);
+        setShowScheduleForm(false);
+        setActiveTab("info");
+      }, 200);
+    }
+  };
 
   if (!bed) return null;
 
@@ -54,6 +77,8 @@ export function QuickViewModal({
   const handleCheckOut = () => {
     onCheckOut(bed.id);
     setShowCheckOut(false);
+    // Don't close modal completely if we want them to see the cleaning state or schedule.
+    // Let's close it so the user returns to grid.
     onClose();
   };
 
@@ -67,6 +92,16 @@ export function QuickViewModal({
 
   const handleMarkAvailable = () => {
     onMarkAvailable(bed.id);
+    onClose();
+  };
+
+  const handleScheduleSubmit = (data: SchedulePatientFormData) => {
+    onSchedulePatient(bed.id, data);
+    setShowScheduleForm(false);
+  };
+
+  const handleAdmitScheduledPatient = () => {
+    onAdmitScheduled(bed.id);
     onClose();
   };
 
@@ -84,12 +119,10 @@ export function QuickViewModal({
     : 0;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
-        {/* Overlay */}
         <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
 
-        {/* Modal Content */}
         <Dialog.Content
           id="quick-view-modal"
           className={cn(
@@ -137,6 +170,12 @@ export function QuickViewModal({
                       {daysStay} day stay
                     </span>
                   )}
+                  {bed.scheduledPatient && (
+                    <span className="text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 font-medium flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Scheduled
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -151,17 +190,63 @@ export function QuickViewModal({
           {/* Scrollable Body */}
           <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
             <div className="p-6">
+              
               {/* === AVAILABLE BED === */}
-              {bed.status === "available" && !showCheckOut && (
-                <CheckInForm
+              {bed.status === "available" && !showCheckOut && !showScheduleForm && (
+                <div className="space-y-6">
+                  {/* If there is a scheduled patient, show option to admit them immediately */}
+                  {bed.scheduledPatient && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-indigo-800 flex items-center gap-1.5">
+                          <Clock className="w-4 h-4" />
+                          Scheduled Patient: {bed.scheduledPatient.name}
+                        </p>
+                        <p className="text-xs text-indigo-600 mt-0.5">
+                          This bed is reserved for this patient.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleAdmitScheduledPatient}
+                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm flex items-center gap-2"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                        Admit Now
+                      </button>
+                    </div>
+                  )}
+
+                  <CheckInForm
+                    bedNumber={bed.number}
+                    onSubmit={handleCheckIn}
+                    onCancel={() => handleOpenChange(false)}
+                  />
+
+                  {/* Option to schedule if no one is scheduled yet */}
+                  {!bed.scheduledPatient && (
+                    <div className="pt-4 border-t border-slate-100 flex justify-center">
+                      <button
+                        onClick={() => setShowScheduleForm(true)}
+                        className="text-sm text-indigo-600 font-medium hover:text-indigo-800 transition"
+                      >
+                        Or schedule a patient for later
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show Schedule Form Standalone */}
+              {showScheduleForm && (
+                <ScheduleForm
                   bedNumber={bed.number}
-                  onSubmit={handleCheckIn}
-                  onCancel={onClose}
+                  onSubmit={handleScheduleSubmit}
+                  onCancel={() => setShowScheduleForm(false)}
                 />
               )}
 
               {/* === CLEANING BED === */}
-              {bed.status === "cleaning" && (
+              {bed.status === "cleaning" && !showScheduleForm && (
                 <div className="space-y-5">
                   <div className="flex flex-col items-center justify-center py-8 gap-4 text-center">
                     <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center">
@@ -176,40 +261,59 @@ export function QuickViewModal({
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={onClose}
-                      className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                    >
-                      Close
-                    </button>
-                    <button
-                      id="mark-available-btn"
-                      onClick={handleMarkAvailable}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-sm"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      Mark as Available
-                    </button>
-                  </div>
+                  
+                  {bed.scheduledPatient ? (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+                      <p className="text-sm font-bold text-indigo-800 flex items-center gap-1.5 mb-1">
+                        <Clock className="w-4 h-4" />
+                        Next Patient: {bed.scheduledPatient.name}
+                      </p>
+                      <p className="text-xs text-indigo-600 mb-3">
+                        Once cleaning is done, you can instantly admit the scheduled patient.
+                      </p>
+                      <button
+                        onClick={handleAdmitScheduledPatient}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all shadow-sm"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Finish Cleaning & Admit Patient
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowScheduleForm(true)}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                      >
+                        Schedule Next Patient
+                      </button>
+                      <button
+                        id="mark-available-btn"
+                        onClick={handleMarkAvailable}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-sm"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Mark as Available
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* === OCCUPIED BED === */}
-              {bed.status === "occupied" && bed.patient && !showCheckOut && (
+              {bed.status === "occupied" && bed.patient && !showCheckOut && !showScheduleForm && (
                 <Tabs.Root
                   value={activeTab}
                   onValueChange={(v) =>
-                    setActiveTab(v as "info" | "treatments")
+                    setActiveTab(v as "info" | "treatments" | "schedule")
                   }
                 >
                   {/* Tab List */}
                   <Tabs.List className="flex bg-slate-100 rounded-xl p-1 mb-5 gap-1">
                     <Tabs.Trigger
-                      id="tab-patient-info"
                       value="info"
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all",
+                        "flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-sm font-medium transition-all",
                         "data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm",
                         "data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-700"
                       )}
@@ -218,10 +322,9 @@ export function QuickViewModal({
                       Patient Info
                     </Tabs.Trigger>
                     <Tabs.Trigger
-                      id="tab-treatments"
                       value="treatments"
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all",
+                        "flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-sm font-medium transition-all",
                         "data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm",
                         "data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-700"
                       )}
@@ -232,6 +335,20 @@ export function QuickViewModal({
                         <span className="text-xs bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full">
                           {bed.patient.treatments.length}
                         </span>
+                      )}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                      value="schedule"
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-2 py-2 px-2 rounded-lg text-sm font-medium transition-all",
+                        "data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm",
+                        "data-[state=inactive]:text-slate-500 data-[state=inactive]:hover:text-slate-700"
+                      )}
+                    >
+                      <Clock className="w-4 h-4" />
+                      Queue
+                      {bed.scheduledPatient && (
+                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
                       )}
                     </Tabs.Trigger>
                   </Tabs.List>
@@ -300,26 +417,22 @@ export function QuickViewModal({
                     )}
 
                     {/* Length of stay */}
-                    <div className="bg-rose-50 border border-rose-100 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-rose-600 font-medium">
-                            Length of Stay
-                          </p>
-                          <p className="text-2xl font-bold text-rose-800 mt-0.5">
-                            {daysStay}{" "}
-                            <span className="text-base font-normal">
-                              day{daysStay !== 1 ? "s" : ""}
-                            </span>
-                          </p>
-                        </div>
-                        <BedDouble className="w-8 h-8 text-rose-200" />
+                    <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-rose-600 font-medium">
+                          Length of Stay
+                        </p>
+                        <p className="text-2xl font-bold text-rose-800 mt-0.5">
+                          {daysStay}{" "}
+                          <span className="text-base font-normal">
+                            day{daysStay !== 1 ? "s" : ""}
+                          </span>
+                        </p>
                       </div>
+                      <BedDouble className="w-8 h-8 text-rose-200" />
                     </div>
 
-                    {/* Discharge button */}
                     <button
-                      id="discharge-btn"
                       onClick={() => setShowCheckOut(true)}
                       className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-colors"
                     >
@@ -334,6 +447,70 @@ export function QuickViewModal({
                       onAddTreatment={handleAddTreatment}
                       onRemoveTreatment={handleRemoveTreatment}
                     />
+                  </Tabs.Content>
+
+                  {/* Schedule Tab */}
+                  <Tabs.Content value="schedule">
+                    {bed.scheduledPatient ? (
+                      <div className="space-y-4">
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
+                          <div className="flex items-center gap-2 mb-4">
+                            <Clock className="w-5 h-5 text-indigo-600" />
+                            <h3 className="text-base font-bold text-indigo-900">Patient in Queue</h3>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-y-3 gap-x-4 mb-4">
+                            <div>
+                              <p className="text-xs text-indigo-500 mb-0.5">Name</p>
+                              <p className="text-sm font-semibold text-indigo-900">{bed.scheduledPatient.name}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-indigo-500 mb-0.5">Age/Gender</p>
+                              <p className="text-sm font-semibold text-indigo-900">{bed.scheduledPatient.age}y · {bed.scheduledPatient.gender}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-xs text-indigo-500 mb-0.5">Planned Date</p>
+                              <p className="text-sm font-semibold text-indigo-900">
+                                {new Date(bed.scheduledPatient.plannedDate).toLocaleDateString("en-IN", {
+                                  day: "numeric", month: "long", year: "numeric"
+                                })}
+                              </p>
+                            </div>
+                            {bed.scheduledPatient.diagnosis && (
+                              <div className="col-span-2">
+                                <p className="text-xs text-indigo-500 mb-0.5">Diagnosis</p>
+                                <p className="text-sm font-medium text-indigo-900">{bed.scheduledPatient.diagnosis}</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <button
+                            onClick={() => onCancelSchedule(bed.id)}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-rose-600 bg-white border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                            Cancel Schedule
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-500 text-center px-4">
+                          This patient will be ready to admit once the current patient is discharged and the bed is cleaned.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <Clock className="w-12 h-12 text-slate-200 mb-3" />
+                        <h3 className="text-sm font-semibold text-slate-700 mb-1">No patient scheduled</h3>
+                        <p className="text-xs text-slate-500 max-w-[250px] mb-6">
+                          Queue a patient for this bed so they can be admitted right after the current patient is discharged.
+                        </p>
+                        <button
+                          onClick={() => setShowScheduleForm(true)}
+                          className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition shadow-sm"
+                        >
+                          Schedule Next Patient
+                        </button>
+                      </div>
+                    )}
                   </Tabs.Content>
                 </Tabs.Root>
               )}
